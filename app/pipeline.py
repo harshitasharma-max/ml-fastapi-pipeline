@@ -20,12 +20,11 @@ def train_model(file_path):
 
 
 def predict(features):
-
     global model
 
     if model is None:
-        return "Model not trained"
+        return None
 
     prediction = model.predict([features])
 
-    return prediction[0]
+    return float(prediction[0])
