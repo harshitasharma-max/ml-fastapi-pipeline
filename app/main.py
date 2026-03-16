@@ -1,37 +1,49 @@
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, File, Form
 import shutil
+import os
 from app.pipeline import train_model, predict
 
 app = FastAPI()
 
-DATASET_PATH = "datasets/data.csv"
+UPLOAD_FOLDER = "data"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-@app.post("/upload-dataset")
+@app.get("/")
+def home():
+    return {"message": "ML FastAPI Pipeline Running"}
 
-async def upload_dataset(file: UploadFile):
 
-    with open(DATASET_PATH, "wb") as buffer:
+# Upload dataset and train model
+@app.post("/upload")
+async def upload_dataset(file: UploadFile = File(...)):
+    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+
+    with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    return {"message": "Dataset uploaded successfully"}
+    result = train_model(file_path)
+
+    return {
+        "message": "Dataset uploaded successfully",
+        "training_status": result
+    }
 
 
-
-@app.post("/train")
-
-def train():
-
-    message = train_model(DATASET_PATH)
-
-    return {"message": message}
-
-
-
+# Predict endpoint
 @app.post("/predict")
+async def make_prediction(features: str = Form(...)):
+    try:
+        # Convert input string to list of floats
+        values = list(map(float, features.split(",")))
 
-def make_prediction(features: list):
+        result = predict(values)
 
-    result = predict(features)
+        return {
+            "prediction": result
+        }
 
-    return {"prediction": result}
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
