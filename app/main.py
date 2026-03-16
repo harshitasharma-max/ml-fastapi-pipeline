@@ -34,16 +34,19 @@ async def upload_dataset(file: UploadFile = File(...)):
 @app.post("/predict")
 async def make_prediction(features: str = Form(...)):
     try:
-        # Convert input string to list of floats
+        # convert input to float list
         values = list(map(float, features.split(",")))
 
         result = predict(values)
 
-        return {
-            "prediction": result
-        }
+        # Fix NaN or infinite values
+        if result is None:
+            return {"error": "Model not trained"}
+
+        if result != result:   # check for NaN
+            return {"error": "Prediction returned NaN"}
+
+        return {"prediction": float(result)}
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
